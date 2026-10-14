@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Settings & System Help — IncidentPulse{% endblock %}
+{% block page_title %}Settings & Documentation{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- Core Concept: Availability vs Workflow Monitoring -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">💡 Deep Dive: Endpoint Availability vs. Complete Workflow Health</h3>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+        A primary design goal of <strong>IncidentPulse</strong> is to emphasize that HTTP socket availability does not equate to business transaction correctness.
+      </p>
+      
+      <div style="background-color: var(--bg-soft-yellow); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 14px;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">
+          What Endpoint Health Confirms:
+        </h4>
+        <ul style="font-size: 0.85rem; color: var(--text-secondary); padding-left: 20px; line-height: 1.5;">
+          <li>DNS resolution succeeds for the domain.</li>
+          <li>TCP handshake completes within the timeout limit.</li>
+          <li>TLS certificate handshake is valid.</li>
+          <li>HTTP server responds with the expected status code (e.g. 200 OK).</li>
+          <li>HTTP response time meets performance expectations.</li>
+        </ul>
+      </div>
+
+      <div style="background-color: #FFF; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: #991B1B; margin-bottom: 4px;">
+          What Endpoint Health Does NOT Prove:
+        </h4>
+        <ul style="font-size: 0.85rem; color: var(--text-secondary); padding-left: 20px; line-height: 1.5;">
+          <li>User authentication databases or OAuth flows are operating correctly.</li>
+          <li>E-commerce shopping cart checkout or Stripe/PayPal payment gateways work.</li>
+          <li>Async workers (Celery, Redis queues, RabbitMQ) are processing jobs.</li>
+          <li>Third-party microservice dependencies or ERP syncs are responding accurately.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Security & SSRF Protection Architecture -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">🛡️ Security Architecture & SSRF Protections</h3>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+        Allowing user-specified health check URLs is inherently security-sensitive. IncidentPulse enforces strict server-side request forgery (SSRF) mitigations:
+      </p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 0.84rem;">
+        <div style="padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          <strong>🔒 Scheme & Credentials</strong>
+          <p style="color: var(--text-secondary); margin-top: 4px;">Only HTTP and HTTPS are permitted. Embedded URL credentials (e.g. <code>user:pass@host</code>) are rejected.</p>
+        </div>
+        <div style="padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          <strong>🌐 Private & Metadata Blocking</strong>
+          <p style="color: var(--text-secondary); margin-top: 4px;">All resolved IP addresses are checked against RFC 1918, link-local, loopback, and cloud metadata (<code>169.254.169.254</code>).</p>
+        </div>
+        <div style="padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          <strong>🔄 Safe Redirect Revalidation</strong>
+          <p style="color: var(--text-secondary); margin-top: 4px;">Redirects are resolved step-by-step; each redirect target is re-validated through the full SSRF filter before connecting.</p>
+        </div>
+        <div style="padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+          <strong>🧪 Authorized Demo Mode</strong>
+          <p style="color: var(--text-secondary); margin-top: 4px;">Local loopback monitoring is permitted ONLY when explicitly authorized per-service on designated hackathon ports (5000-9999).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Settings Sidebar -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">⚙️ Active Configuration</h3>
+      </div>
+      <div style="font-size: 0.84rem; display: flex; flex-direction: column; gap: 10px;">
+        <div>Default Interval: <strong>{{ config.MONITORING_DEFAULT_INTERVAL }}s</strong></div>
+        <div>Interval Limits: <strong>{{ config.MONITORING_MIN_INTERVAL }}s – {{ config.MONITORING_MAX_INTERVAL }}s</strong></div>
+        <div>Default Timeout: <strong>{{ config.MONITORING_DEFAULT_TIMEOUT }}s</strong></div>
+        <div>Max Timeout: <strong>{{ config.MONITORING_MAX_TIMEOUT }}s</strong></div>
+        <div>Max Services: <strong>{{ config.MAX_SERVICES }}</strong></div>
+        <div>Local Demo Mode: 
+          <span class="status-badge {% if config.ALLOW_LOCAL_DEMO %}UP{% else %}DOWN{% endif %}">
+            {% if config.ALLOW_LOCAL_DEMO %}ENABLED{% else %}DISABLED{% endif %}
+          </span>
+        </div>
+        <div>Manual Check Cooldown: <strong>{{ config.MANUAL_CHECK_COOLDOWN_SECONDS }}s</strong></div>
+      </div>
+    </div>
+
+    <!-- Quick Demo Instructions -->
+    <div class="card" style="background-color: var(--bg-soft-yellow);">
+      <div class="card-header">
+        <h3 class="card-title">🚀 Hackathon Demo Guide</h3>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+        Follow these steps to demonstrate real failure and automatic recovery:
+      </p>
+      <ol style="font-size: 0.8rem; color: var(--text-main); padding-left: 18px; line-height: 1.6;">
+        <li>Start Demo: <code>python demo/demo_service.py</code></li>
+        <li>Add <code>http://127.0.0.1:5050/health</code> with Local Demo checked.</li>
+        <li>Kill demo process (Ctrl+C).</li>
+        <li>Watch CRITICAL incident open after 2 failures.</li>
+        <li>Restart demo: <code>python demo/demo_service.py</code>.</li>
+        <li>Watch automatic recovery and duration calculation!</li>
+      </ol>
+      <a href="/services" class="btn btn-primary btn-sm" style="margin-top: 12px; width: 100%;">Go to Services</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

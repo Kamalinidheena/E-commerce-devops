@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 160" width="240" height="160" fill="none">
+  <!-- Soft Cloud Background -->
+  <path d="M60 110 C45 110 35 100 35 85 C35 72 45 62 58 60 C62 40 82 25 108 25 C132 25 152 40 156 60 C168 62 178 72 178 85 C178 100 168 110 152 110 Z" 
+        fill="#FFF4BF" stroke="#F0E6BF" stroke-width="2.5" stroke-dasharray="4 4"/>
+  
+  <!-- Server / Monitor Doodle -->
+  <rect x="85" y="55" width="70" height="50" rx="8" fill="#FFFFFF" stroke="#302F25" stroke-width="3"/>
+  <rect x="95" y="65" width="50" height="30" rx="4" fill="#FFFDF4" stroke="#FFE680" stroke-width="2"/>
+  
+  <!-- Smiling Server Face -->
+  <circle cx="112" cy="78" r="2.5" fill="#302F25"/>
+  <circle cx="128" cy="78" r="2.5" fill="#302F25"/>
+  <path d="M117 84 Q120 88 123 84" stroke="#302F25" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Little antenna -->
+  <path d="M120 55 L120 45" stroke="#302F25" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="120" cy="43" r="3" fill="#FFD54F" stroke="#302F25" stroke-width="1.5"/>
+  
+  <!-- Stand -->
+  <path d="M112 105 L110 118 L130 118 L128 105" fill="#FFE680" stroke="#302F25" stroke-width="2.5"/>
+  <line x1="102" y1="118" x2="138" y2="118" stroke="#302F25" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Decorative Sparkles and Little Clouds -->
+  <path d="M185 45 L188 38 L191 45 L198 48 L191 51 L188 58 L185 51 L178 48 Z" fill="#FFD54F"/>
+  <path d="M40 40 L42 35 L44 40 L49 42 L44 44 L42 49 L40 44 L35 42 Z" fill="#FFE680"/>
+  <circle cx="195" cy="85" r="3" fill="#FFE680"/>
+  <circle cx="48" cy="115" r="3" fill="#FFD54F"/>
+</svg>

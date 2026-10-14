@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — IncidentPulse{% endblock %}
+{% block page_title %}Operational Overview{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span class="metric-label">Monitored Services</span>
+    <span class="metric-value">{{ summary.total_services }}</span>
+    <span class="metric-subtext">Active health endpoints</span>
+  </div>
+
+  <div class="metric-card status-up">
+    <span class="metric-label">Services UP</span>
+    <span class="metric-value" style="color: var(--status-up);">{{ summary.services_up }}</span>
+    <span class="metric-subtext">Responding with expected status</span>
+  </div>
+
+  <div class="metric-card status-down">
+    <span class="metric-label">Services DOWN</span>
+    <span class="metric-value" style="color: var(--status-down);">{{ summary.services_down }}</span>
+    <span class="metric-subtext">Unreachable or server failure</span>
+  </div>
+
+  <div class="metric-card status-degraded">
+    <span class="metric-label">Degraded</span>
+    <span class="metric-value" style="color: var(--status-degraded);">{{ summary.services_degraded }}</span>
+    <span class="metric-subtext">High latency threshold exceeded</span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Open Incidents</span>
+    <span class="metric-value" style="color: {% if summary.open_incidents > 0 %}var(--status-down){% else %}var(--status-up){% endif %};">
+      {{ summary.open_incidents }}
+    </span>
+    <span class="metric-subtext">Requiring resolution</span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Recent Recoveries</span>
+    <span class="metric-value" style="color: var(--status-up);">{{ summary.recent_recoveries }}</span>
+    <span class="metric-subtext">Resolved in last 24h</span>
+  </div>
+</div>
+
+<!-- Main Telemetry Grid -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 28px;">
+  <!-- Live Response Time Chart -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">📈 Real Telemetry: Response Time History</h3>
+      {% if services %}
+      <select id="chartServiceSelect" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.82rem;">
+        {% for s in services %}
+        <option value="{{ s.id }}">{{ s.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+    </div>
+
+    <div style="position: relative; width: 100%; min-height: 240px;">
+      <canvas id="overviewChart"></canvas>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; font-size: 0.8rem; color: var(--text-secondary); border-top: 1px solid var(--border-light); padding-top: 8px;">
+      <span>⏱️ Latest measured check: <strong>{% if summary.latest_response_time_ms is not none %}{{ summary.latest_response_time_ms }} ms{% else %}None{% endif %}</strong></span>
+      <span>🕒 Last check time: <strong>{% if summary.last_check_time %}{{ summary.last_check_time[:19].replace('T', ' ') }} UTC{% else %}No checks yet{% endif %}</strong></span>
+    </div>
+  </div>
+
+  <!-- Incident Timeline -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">🚨 Recent Incident Timeline</h3>
+      <a href="/incidents" class="btn btn-outline btn-sm">View All</a>
+    </div>
+
+    {% if recent_incidents %}
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      {% for inc in recent_incidents %}
+      <div style="padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background-color: {% if inc.status == 'OPEN' %}#FFF5F5{% else %}#F0FDF4{% endif %};">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <strong style="font-size: 0.88rem;">{{ inc.title }}</strong>
+          <span class="status-badge {{ inc.status }}">{{ inc.status }}</span>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 6px;">{{ inc.description }}</p>
+        <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+          <span>Started: {{ inc.started_at[11:19] }} UTC</span>
+          {% if inc.duration_seconds is not none %}
+          <span>Duration: <strong>{{ inc.duration_seconds }}s</strong></span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 24px 12px;">
+      <img src="{{ url_for('static', filename='img/recovery.svg') }}" alt="Operational" style="width: 80px; height: 80px; margin-bottom: 8px;">
+      <h4>All Systems Operational</h4>
+      <p style="font-size: 0.8rem; margin-bottom: 0;">No active or past incidents recorded in the database.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Monitored Endpoints Grid -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">🌐 Configured Endpoints & Live Status</h3>
+    <a href="/services" class="btn btn-primary btn-sm">Manage Services</a>
+  </div>
+
+  {% if services %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+    {% for s in services %}
+    <div class="card" style="border: 1.5px solid var(--border-color); padding: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+        <div>
+          <h4 style="font-size: 1rem; font-weight: 700;">
+            <a href="/services/{{ s.id }}" style="color: var(--text-main); text-decoration: none;">{{ s.name }}</a>
+          </h4>
+          <code style="font-size: 0.76rem; word-break: break-all;">{{ s.url }}</code>
+        </div>
+        <span class="status-badge {{ s.current_status }}">{{ s.current_status }}</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; font-size: 0.82rem; color: var(--text-secondary);">
+        <div>HTTP Status: <strong>{% if s.last_status_code %}{{ s.last_status_code }}{% else %}—{% endif %}</strong></div>
+        <div>Latency: <strong>{% if s.last_response_time_ms is not none %}{{ s.last_response_time_ms }} ms{% else %}—{% endif %}</strong></div>
+        <div>Interval: <strong>{{ s.check_interval }}s</strong></div>
+        <div>Timeout: <strong>{{ s.timeout }}s</strong></div>
+      </div>
+
+      {% if s.last_error_message %}
+      <div style="background-color: #FEE2E2; border-left: 3px solid var(--status-down); padding: 6px 10px; border-radius: 4px; font-size: 0.78rem; color: #991B1B; margin-bottom: 12px;">
+        ⚠️ {{ s.last_error_message }}
+      </div>
+      {% endif %}
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 10px;">
+        <span style="font-size: 0.75rem; color: var(--text-muted);">
+          {% if s.last_checked_at %}Checked: {{ s.last_checked_at[11:19] }} UTC{% else %}Never checked{% endif %}
+        </span>
+        <button class="btn btn-outline btn-sm" onclick="triggerManualCheck({{ s.id }}, this)">Check Now</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <!-- Honest Empty State -->
+  <div class="empty-state">
+    <img src="{{ url_for('static', filename='img/empty_state.svg') }}" alt="No services" class="empty-state-img">
+    <h3>No Services Monitored Yet</h3>
+    <p>Get started by adding your first HTTP/HTTPS health-check endpoint. IncidentPulse will monitor it continuously and alert you when downtime or slow response times occur.</p>
+    <button class="btn btn-primary" onclick="openModal('addServiceModal')">➕ Add Your First Service</button>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const chart = new ResponseTimeChart("overviewChart");
+    const select = document.getElementById("chartServiceSelect");
+
+    async function loadTelemetry(serviceId) {
+      if (!serviceId) return;
+      try {
+        const res = await fetch(`/api/services/${serviceId}/checks?limit=40`);
+        const data = await res.json();
+        if (data.success) {
+          // Find service latency threshold
+          const svcRes = await fetch(`/api/services/${serviceId}`);
+          const svcData = await svcRes.json();
+          let thresh = 500;
+          if (svcData.success && svcData.data.alert_rules) {
+            const rule = svcData.data.alert_rules.find(r => r.rule_type === "LATENCY_THRESHOLD");
+            if (rule) thresh = rule.threshold_value;
+          }
+          chart.setData(data.data, thresh);
+        }
+      } catch (err) {
+        console.error("Telemetry load failed:", err);
+      }
+    }
+
+    if (select) {
+      select.addEventListener("change", (e) => loadTelemetry(e.target.value));
+      loadTelemetry(select.value);
+    } else {
+      chart.setData([]);
+    }
+  });
+</script>
+{% endblock %}

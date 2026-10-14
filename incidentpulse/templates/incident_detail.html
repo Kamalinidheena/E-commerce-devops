@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Incident #{{ incident.id }} — IncidentPulse{% endblock %}
+{% block page_title %}Incident #{{ incident.id }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+  <a href="/incidents" class="btn btn-outline btn-sm">← Back to All Incidents</a>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
+        <h2 style="font-size: 1.4rem; font-weight: 800;">{{ incident.title }}</h2>
+        <span class="status-badge {{ incident.severity }}">{{ incident.severity }}</span>
+        <span class="status-badge {{ incident.status }}">{{ incident.status }}</span>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-secondary);">
+        Service: <strong>{{ incident.service_name or 'Service #' ~ incident.service_id }}</strong>
+        — <code>{{ incident.service_url or 'N/A' }}</code>
+      </p>
+    </div>
+  </div>
+
+  <div class="metrics-grid" style="margin: 16px 0;">
+    <div class="metric-card">
+      <span class="metric-label">Incident Started</span>
+      <span class="metric-value" style="font-size: 1.25rem;">{{ incident.started_at[11:19] }}</span>
+      <span class="metric-subtext">{{ incident.started_at[:10] }} UTC</span>
+    </div>
+
+    <div class="metric-card">
+      <span class="metric-label">Incident Resolved</span>
+      <span class="metric-value" style="font-size: 1.25rem;">
+        {% if incident.resolved_at %}{{ incident.resolved_at[11:19] }}{% else %}Active{% endif %}
+      </span>
+      <span class="metric-subtext">{% if incident.resolved_at %}{{ incident.resolved_at[:10] }} UTC{% else %}Ongoing outage{% endif %}</span>
+    </div>
+
+    <div class="metric-card">
+      <span class="metric-label">Actual Duration</span>
+      <span class="metric-value" style="font-size: 1.25rem;">
+        {% if incident.duration_seconds is not none %}<strong>{{ incident.duration_seconds }} s</strong>{% else %}Ongoing{% endif %}
+      </span>
+      <span class="metric-subtext">Calculated from SQLite timestamps</span>
+    </div>
+
+    <div class="metric-card">
+      <span class="metric-label">Alert Triggered</span>
+      <span class="metric-value" style="font-size: 1.15rem;">{{ incident.rule_type }}</span>
+      <span class="metric-subtext">Independent rule identity</span>
+    </div>
+  </div>
+
+  <div style="background-color: var(--bg-main); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); padding: 16px; margin-top: 12px;">
+    <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 6px;">Root Cause & Diagnostic Log</h4>
+    <p style="font-size: 0.88rem; color: var(--text-main); line-height: 1.4;">{{ incident.description }}</p>
+  </div>
+</div>
+
+<!-- Notification Delivery Attempts for this Incident -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">🔔 Webhook Notification Delivery Telemetry</h3>
+  </div>
+
+  {% if incident.notification_logs %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Attempt #</th>
+          <th>Time (UTC)</th>
+          <th>Channel</th>
+          <th>Destination Target</th>
+          <th>HTTP Code</th>
+          <th>Delivery Status</th>
+          <th>Diagnostic Response</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in incident.notification_logs %}
+        <tr>
+          <td>{{ log.attempt_number }}</td>
+          <td style="font-size: 0.8rem;">{{ log.created_at[:19].replace('T', ' ') }}</td>
+          <td><span class="status-badge" style="background-color: #E0F2FE; color: #0288D1;">{{ log.channel_type }}</span></td>
+          <td><code>{{ log.target_url }}</code></td>
+          <td>
+            {% if log.http_status %}
+            <span style="font-weight: 700; color: {% if log.http_status < 400 %}var(--status-up){% else %}var(--status-down){% endif %};">
+              {{ log.http_status }}
+            </span>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td><span class="status-badge {{ log.status }}">{{ log.status }}</span></td>
+          <td style="font-size: 0.8rem; color: {% if log.error_message %}#991B1B{% else %}var(--status-up){% endif %};">
+            {{ log.error_message or 'Receiver acknowledged payload successfully' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding: 24px;">
+    <h4>No Notification Delivery Attempts</h4>
+    <p style="font-size: 0.85rem; margin-bottom: 0;">
+      No webhook destination was configured at the time this incident opened. Configure a webhook in the Notification Center to receive alerts.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

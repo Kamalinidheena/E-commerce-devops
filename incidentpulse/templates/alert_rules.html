@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Alert Rules — IncidentPulse{% endblock %}
+{% block page_title %}Alert Rules & Thresholds{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">⚙️ Independent Alert Condition Engine</h3>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+        IncidentPulse evaluates two strictly decoupled rules for every check. A high-latency warning will never overwrite or falsely resolve a concurrent connection failure outage.
+      </p>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <!-- Rule 1 Documentation Card -->
+    <div style="background-color: var(--bg-soft-yellow); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="font-size: 1.4rem;">🚨</span>
+        <h4 style="font-size: 1.05rem; font-weight: 700;">RULE 1 — Endpoint Failure (Critical)</h4>
+      </div>
+      <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px;">
+        Monitors socket reachability, DNS resolution, connection refusal, timeouts, and unacceptable HTTP status codes. Opens a <strong>CRITICAL</strong> incident when consecutive failures reach your configured limit.
+      </p>
+      <ul style="font-size: 0.8rem; color: var(--text-secondary); padding-left: 20px; line-height: 1.5;">
+        <li>Requires consecutive failures to filter out transient network blips.</li>
+        <li>Prevents duplicate incident creation during continuous outages.</li>
+        <li>Automatically detects recovery when consecutive successful checks occur.</li>
+      </ul>
+    </div>
+
+    <!-- Rule 2 Documentation Card -->
+    <div style="background-color: var(--bg-soft-yellow); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="font-size: 1.4rem;">⚠️</span>
+        <h4 style="font-size: 1.05rem; font-weight: 700;">RULE 2 — Latency Threshold (Degraded)</h4>
+      </div>
+      <p style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px;">
+        Measures the actual HTTP response time in milliseconds. When response times exceed the millisecond threshold for consecutive samples, a <strong>WARNING / DEGRADED</strong> incident is recorded.
+      </p>
+      <ul style="font-size: 0.8rem; color: var(--text-secondary); padding-left: 20px; line-height: 1.5;">
+        <li>Detects performance bottlenecks even when the endpoint returns 200 OK.</li>
+        <li>Operates on independent streak counters.</li>
+        <li>Resolves automatically when latency returns below threshold for consecutive checks.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Configured Rules Per Service -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">📋 Active Alert Rules Across Services</h3>
+  </div>
+
+  {% if services %}
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+    {% for s in services %}
+    <div style="border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; background-color: #FFFFFF;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-light); padding-bottom: 10px;">
+        <div>
+          <h4 style="font-size: 1.1rem; font-weight: 700;">
+            <a href="/services/{{ s.id }}" style="color: var(--text-main); text-decoration: none;">{{ s.name }}</a>
+          </h4>
+          <code style="font-size: 0.78rem;">{{ s.url }}</code>
+        </div>
+        <span class="status-badge {{ s.current_status }}">{{ s.current_status }}</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Rule Type</th>
+              <th>Threshold Value</th>
+              <th>Consecutive Samples</th>
+              <th>Recovery Samples</th>
+              <th>Current Failure Streak</th>
+              <th>Current Success Streak</th>
+              <th>State</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in s.alert_rules %}
+            <tr>
+              <td>
+                <strong>
+                  {% if r.rule_type == 'ENDPOINT_FAILURE' %}🚨 Endpoint Failure{% else %}⚠️ Latency Threshold{% endif %}
+                </strong>
+              </td>
+              <td>
+                <span id="thresh_val_{{ r.id }}">
+                  {% if r.rule_type == 'ENDPOINT_FAILURE' %}
+                  {{ r.threshold_value|int }} consecutive failures
+                  {% else %}
+                  {{ r.threshold_value }} ms
+                  {% endif %}
+                </span>
+              </td>
+              <td>{{ r.consecutive_threshold }}</td>
+              <td>{{ r.recovery_threshold }}</td>
+              <td>
+                <strong style="color: {% if r.current_failure_streak > 0 %}var(--status-down){% else %}var(--text-main){% endif %};">
+                  {{ r.current_failure_streak }}
+                </strong>
+              </td>
+              <td>
+                <strong style="color: {% if r.current_success_streak > 0 %}var(--status-up){% else %}var(--text-main){% endif %};">
+                  {{ r.current_success_streak }}
+                </strong>
+              </td>
+              <td>
+                <span class="status-badge {% if r.is_enabled %}UP{% else %}UNKNOWN{% endif %}">
+                  {% if r.is_enabled %}ACTIVE{% else %}DISABLED{% endif %}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-outline btn-sm" onclick="promptEditRule({{ s.id }}, {{ r.id }}, '{{ r.rule_type }}', {{ r.threshold_value }})">
+                  Edit Threshold
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <img src="{{ url_for('static', filename='img/empty_state.svg') }}" alt="Empty" class="empty-state-img">
+    <h3>No Services Monitored</h3>
+    <p>Add a service first to view and customize its alert threshold rules.</p>
+    <button class="btn btn-primary" onclick="openModal('addServiceModal')">➕ Add Service</button>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function promptEditRule(serviceId, ruleId, ruleType, currentVal) {
+    const promptMsg = ruleType === "ENDPOINT_FAILURE"
+      ? "Enter consecutive failure count before opening CRITICAL alert:"
+      : "Enter latency threshold in milliseconds (e.g. 400):";
+    
+    const newVal = prompt(promptMsg, currentVal);
+    if (!newVal || isNaN(newVal)) return;
+
+    try {
+      const res = await fetch(`/api/services/${serviceId}/rules/${ruleId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ threshold_value: parseFloat(newVal) })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("Alert rule threshold updated successfully!", "success");
+        setTimeout(() => window.location.reload(), 600);
+      } else {
+        showToast(data.error || "Update failed", "error");
+      }
+    } catch (err) {
+      showToast("Network error updating rule", "error");
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <!-- Soft Yellow Aura / Glow -->
+  <circle cx="60" cy="60" r="50" fill="#FFF4BF" stroke="#FFE680" stroke-width="3"/>
+  <circle cx="60" cy="60" r="42" fill="#FFFFFF"/>
+  
+  <!-- Tiny decorative star doodles -->
+  <path d="M22 26 L25 21 L28 26 L33 28 L28 30 L25 35 L22 30 L17 28 Z" fill="#FFD54F"/>
+  <path d="M96 22 L98 18 L100 22 L104 24 L100 26 L98 30 L96 26 L92 24 Z" fill="#FFD54F"/>
+  <path d="M92 88 L94 84 L96 88 L100 90 L96 92 L94 96 L92 92 L88 90 Z" fill="#FFE680"/>
+
+  <!-- Pulse Monitor Line (Hand-drawn look) -->
+  <path d="M24 60 L42 60 L48 44 L54 78 L62 36 L70 82 L76 54 L82 64 L88 60 L96 60" 
+        stroke="#302F25" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Cute Mascot Eyes & Cheeks -->
+  <circle cx="48" cy="38" r="3.5" fill="#302F25"/>
+  <circle cx="72" cy="38" r="3.5" fill="#302F25"/>
+  <ellipse cx="43" cy="42" rx="4" ry="2" fill="#FF8A80" opacity="0.6"/>
+  <ellipse cx="77" cy="42" rx="4" ry="2" fill="#FF8A80" opacity="0.6"/>
+
+  <!-- Smiling mouth -->
+  <path d="M56 46 Q60 50 64 46" stroke="#302F25" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Tiny Heartbeat Sparkle -->
+  <circle cx="62" cy="36" r="3" fill="#2E7D32"/>
+</svg>

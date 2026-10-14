@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}IncidentPulse — Health Monitoring & Alerting{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/mascot.svg') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Persistent Sidebar -->
+    <aside class="sidebar">
+      <div class="brand-section">
+        <img src="{{ url_for('static', filename='img/mascot.svg') }}" alt="IncidentPulse Mascot" class="brand-logo-img">
+        <div class="brand-info">
+          <h1>IncidentPulse</h1>
+          <span class="tagline">Real-Time Health & Alerting</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+          <span class="nav-icon">📊</span>
+          <span>Overview</span>
+        </a>
+        <a href="/services" class="nav-link {% if request.path.startswith('/services') %}active{% endif %}">
+          <span class="nav-icon">🌐</span>
+          <span>Monitored Services</span>
+        </a>
+        <a href="/alert-rules" class="nav-link {% if request.path == '/alert-rules' %}active{% endif %}">
+          <span class="nav-icon">⚙️</span>
+          <span>Alert Rules</span>
+        </a>
+        <a href="/incidents" class="nav-link {% if request.path.startswith('/incidents') %}active{% endif %}">
+          <span class="nav-icon">🚨</span>
+          <span>Incident Center</span>
+        </a>
+        <a href="/notifications" class="nav-link {% if request.path == '/notifications' %}active{% endif %}">
+          <span class="nav-icon">🔔</span>
+          <span>Notification Center</span>
+        </a>
+        <a href="/audit" class="nav-link {% if request.path == '/audit' %}active{% endif %}">
+          <span class="nav-icon">📜</span>
+          <span>Audit & History</span>
+        </a>
+        <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}">
+          <span class="nav-icon">💡</span>
+          <span>Settings & Help</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="live-heartbeat-box">
+          <span class="heartbeat-dot"></span>
+          <span>Engine Active & Checking</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu-btn" aria-label="Toggle navigation">☰</button>
+          <div class="page-title-doodle">
+            <span class="doodle-sparkle">✨</span>
+            <h2 class="page-title">{% block page_title %}System Health{% endblock %}</h2>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="autoRefreshToggle" checked style="accent-color: var(--bg-accent-yellow);">
+            <span>Auto-Refresh (10s)</span>
+          </label>
+          <button class="btn btn-outline btn-sm" onclick="window.location.reload();">🔄 Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addServiceModal')">➕ Add Service</button>
+        </div>
+      </header>
+
+      <main class="content-area">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <!-- Global Add Service Modal Dialog -->
+  <div id="addServiceModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>✨ Add Monitored Endpoint</h2>
+        <button class="modal-close" onclick="closeModal('addServiceModal')">&times;</button>
+      </div>
+      <form id="addServiceForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="svc_name">Service Name *</label>
+            <input type="text" id="svc_name" name="name" class="form-control" placeholder="e.g. Production Inventory API" required minlength="2" maxlength="100">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="svc_url">Health Check URL *</label>
+            <input type="url" id="svc_url" name="url" class="form-control" placeholder="http://127.0.0.1:5050/health or https://example.com/health" required>
+            <small style="color: var(--text-secondary); display: block; margin-top: 4px;">
+              🛡️ Note: External monitoring strictly blocks private/loopback IPs. For local test services, check Authorized Demo below.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="svc_desc">Description (Optional)</label>
+            <input type="text" id="svc_desc" name="description" class="form-control" placeholder="Core transaction processing backend">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label class="form-label" for="svc_interval">Interval (seconds) <small>(5-3600)</small></label>
+              <input type="number" id="svc_interval" name="check_interval" class="form-control" value="10" min="5" max="3600" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="svc_timeout">Timeout (seconds) <small>(1-30)</small></label>
+              <input type="number" id="svc_timeout" name="timeout" class="form-control" value="5" min="1" max="30" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label class="form-label" for="svc_status">Expected HTTP Code</label>
+              <input type="number" id="svc_status" name="expected_status" class="form-control" value="200" min="100" max="599" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="svc_fail_thresh">Failures Before Alert</label>
+              <input type="number" id="svc_fail_thresh" name="endpoint_failure_threshold" class="form-control" value="2" min="1" max="20" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <div class="form-group">
+              <label class="form-label" for="svc_latency_thresh">Latency Threshold (ms)</label>
+              <input type="number" id="svc_latency_thresh" name="latency_threshold_ms" class="form-control" value="500" min="10" max="30000" step="10" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="svc_recovery_thresh">Recovery Samples</label>
+              <input type="number" id="svc_recovery_thresh" name="recovery_threshold" class="form-control" value="2" min="1" max="20" required>
+            </div>
+          </div>
+
+          <input type="hidden" name="latency_consecutive_threshold" value="2">
+
+          <div class="form-check" style="background-color: var(--bg-soft-yellow); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-top: 10px;">
+            <input type="checkbox" id="svc_allow_demo" name="allow_local_demo" checked>
+            <label for="svc_allow_demo" style="font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+              🧪 Authorized Local Demo Mode (Allows local loopback targets on ports 5000-9999 for testing)
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('addServiceModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container"></div>
+
+  <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

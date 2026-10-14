@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Monitored Services — IncidentPulse{% endblock %}
+{% block page_title %}Monitored Services{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">🌐 Health Endpoints Management</h3>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+        Configure HTTP/HTTPS endpoints for automated heartbeat checks and failure detection.
+      </p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('addServiceModal')">➕ Add Service</button>
+  </div>
+
+  {% if services %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Service Name</th>
+          <th>Health URL</th>
+          <th>Interval</th>
+          <th>Timeout</th>
+          <th>HTTP Code</th>
+          <th>Response Time</th>
+          <th>Last Checked</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in services %}
+        <tr>
+          <td>
+            <span class="status-badge {{ s.current_status }}">{{ s.current_status }}</span>
+          </td>
+          <td>
+            <strong><a href="/services/{{ s.id }}" style="color: var(--text-main); text-decoration: none;">{{ s.name }}</a></strong>
+            {% if s.description %}
+            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ s.description }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <code style="word-break: break-all;">{{ s.url }}</code>
+          </td>
+          <td>{{ s.check_interval }}s</td>
+          <td>{{ s.timeout }}s</td>
+          <td>
+            {% if s.last_status_code %}
+            <span style="font-weight: 600; color: {% if s.last_status_code < 400 %}var(--status-up){% else %}var(--status-down){% endif %};">
+              {{ s.last_status_code }}
+            </span>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td>
+            {% if s.last_response_time_ms is not none %}
+            <strong>{{ s.last_response_time_ms }} ms</strong>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td style="font-size: 0.8rem; color: var(--text-secondary);">
+            {% if s.last_checked_at %}
+            {{ s.last_checked_at[11:19] }} UTC
+            {% else %}
+            Never
+            {% endif %}
+          </td>
+          <td>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-outline btn-sm" onclick="triggerManualCheck({{ s.id }}, this)">Check</button>
+              <a href="/services/{{ s.id }}" class="btn btn-secondary btn-sm">Details</a>
+              <button class="btn btn-danger btn-sm" onclick="confirmDeleteService({{ s.id }}, '{{ s.name }}')">Delete</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <img src="{{ url_for('static', filename='img/empty_state.svg') }}" alt="Empty" class="empty-state-img">
+    <h3>No Services Configured</h3>
+    <p>You haven't configured any website or application health endpoints yet. Create your first endpoint below to begin monitoring.</p>
+    <button class="btn btn-primary" onclick="openModal('addServiceModal')">➕ Add Monitored Service</button>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Incident Center — IncidentPulse{% endblock %}
+{% block page_title %}Incident Center{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">🚨 Active & Historical Incidents</h3>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">
+        All incidents are derived from actual socket telemetry. Durations are accurately computed from database UTC timestamps.
+      </p>
+    </div>
+
+    <!-- Filters -->
+    <div style="display: flex; gap: 10px;">
+      <select id="filterStatus" class="form-control" style="width: auto; font-size: 0.84rem;">
+        <option value="">All Statuses</option>
+        <option value="OPEN">OPEN Only</option>
+        <option value="RESOLVED">RESOLVED Only</option>
+      </select>
+      <select id="filterSeverity" class="form-control" style="width: auto; font-size: 0.84rem;">
+        <option value="">All Severities</option>
+        <option value="CRITICAL">CRITICAL</option>
+        <option value="WARNING">WARNING</option>
+      </select>
+    </div>
+  </div>
+
+  {% if incidents %}
+  <div class="table-responsive">
+    <table class="data-table" id="incidentsTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Service</th>
+          <th>Triggered Rule</th>
+          <th>Incident Description</th>
+          <th>Started (UTC)</th>
+          <th>Duration</th>
+          <th>Webhook State</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inc in incidents %}
+        <tr data-status="{{ inc.status }}" data-severity="{{ inc.severity }}">
+          <td>#{{ inc.id }}</td>
+          <td><span class="status-badge {{ inc.severity }}">{{ inc.severity }}</span></td>
+          <td><span class="status-badge {{ inc.status }}">{{ inc.status }}</span></td>
+          <td>
+            <strong>
+              <a href="/services/{{ inc.service_id }}" style="color: var(--text-main); text-decoration: none;">
+                {{ inc.service_name or 'Service #' ~ inc.service_id }}
+              </a>
+            </strong>
+          </td>
+          <td>
+            <code style="font-size: 0.76rem;">{{ inc.rule_type }}</code>
+          </td>
+          <td style="max-width: 280px; font-size: 0.82rem;">
+            <strong>{{ inc.title }}</strong>
+            <div style="color: var(--text-secondary); font-size: 0.76rem; margin-top: 2px;">{{ inc.description }}</div>
+          </td>
+          <td style="font-size: 0.8rem; white-space: nowrap;">
+            {{ inc.started_at[:19].replace('T', ' ') }}
+          </td>
+          <td>
+            {% if inc.duration_seconds is not none %}
+            <strong>{{ inc.duration_seconds }}s</strong>
+            {% else %}
+            <span style="color: var(--status-down); font-weight: 700;">Ongoing</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="status-badge {{ inc.notification_status }}">{{ inc.notification_status }}</span>
+          </td>
+          <td>
+            <a href="/incidents/{{ inc.id }}" class="btn btn-outline btn-sm">Inspect</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <img src="{{ url_for('static', filename='img/recovery.svg') }}" alt="No Incidents" class="empty-state-img">
+    <h3>No Incidents Recorded</h3>
+    <p>Zero incidents exist in the database. When an endpoint experiences consecutive check failures or high latency, incidents will appear here in real time.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const fStatus = document.getElementById("filterStatus");
+    const fSev = document.getElementById("filterSeverity");
+    const table = document.getElementById("incidentsTable");
+
+    function applyFilter() {
+      if (!table) return;
+      const statusVal = fStatus.value;
+      const sevVal = fSev.value;
+
+      const rows = table.querySelectorAll("tbody tr");
+      rows.forEach(r => {
+        const rowStatus = r.getAttribute("data-status");
+        const rowSev = r.getAttribute("data-severity");
+
+        const matchStatus = !statusVal || rowStatus === statusVal;
+        const matchSev = !sevVal || rowSev === sevVal;
+
+        r.style.display = (matchStatus && matchSev) ? "" : "none";
+      });
+    }
+
+    if (fStatus && fSev) {
+      fStatus.addEventListener("change", applyFilter);
+      fSev.addEventListener("change", applyFilter);
+    }
+  });
+</script>
+{% endblock %}

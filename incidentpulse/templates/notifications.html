@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Center — IncidentPulse{% endblock %}
+{% block page_title %}Notification Center{% endblock %}
+
+{% block content %}
+<!-- Top Educational Disclaimer -->
+<div style="background-color: var(--bg-soft-yellow); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 14px;">
+  <span style="font-size: 1.6rem;">🔔</span>
+  <div>
+    <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 2px;">
+      Delivery Transparency & Telemetry
+    </h4>
+    <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+      IncidentPulse performs authentic HTTP POST webhook deliveries with bounded retries and exponential backoff. A successful HTTP 200 response from your receiver confirms that your webhook gateway accepted the payload—it does <em>not</em> prove that an on-call engineer read the notification. If delivery fails or times out, the incident remains securely preserved in the database.
+    </p>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+  <!-- Webhook Configuration Form -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">⚙️ Webhook Alert Configuration</h3>
+    </div>
+
+    <form id="notificationConfigForm">
+      <div class="form-group">
+        <label class="form-label" for="webhook_url">Destination Webhook URL</label>
+        <input type="url" id="webhook_url" name="webhook_url" class="form-control" 
+               placeholder="https://webhook.site/... or https://discord.com/api/webhooks/..."
+               value="{{ config.webhook_url if config and config.webhook_url else '' }}">
+        <small style="color: var(--text-secondary); display: block; margin-top: 4px;">
+          Tested with Webhook.site, Discord, Slack, and custom HTTP JSON receivers.
+        </small>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+        <div class="form-group">
+          <label class="form-label" for="timeout_seconds">Timeout (seconds)</label>
+          <input type="number" id="timeout_seconds" name="timeout_seconds" class="form-control" 
+                 value="{{ config.timeout_seconds if config else 5 }}" min="1" max="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="max_retries">Max Retries</label>
+          <input type="number" id="max_retries" name="max_retries" class="form-control" 
+                 value="{{ config.max_retries if config else 3 }}" min="1" max="5">
+        </div>
+      </div>
+
+      <div class="form-check" style="margin-bottom: 18px;">
+        <input type="checkbox" id="is_enabled" name="is_enabled" 
+               {% if not config or config.is_enabled %}checked{% endif %}>
+        <label for="is_enabled" style="font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+          Enable Automated Webhook Dispatch on Incident Open & Recovery
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+    </form>
+  </div>
+
+  <!-- Test Notification Trigger -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">🧪 Test Notification Dispatch</h3>
+    </div>
+
+    <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+      Send an immediate synthetic alert payload to the configured webhook URL. This exercises the HTTP socket, measures delivery latency, and logs the receiver's response code without modifying your service states.
+    </p>
+
+    <div style="background-color: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 18px;">
+      <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 4px;">SAMPLE JSON PAYLOAD</span>
+      <pre style="font-size: 0.76rem; max-height: 120px; overflow-y: auto;">{
+  "event": "INCIDENT_OPENED",
+  "timestamp": "2026-10-14T10:00:00Z",
+  "service": { "id": 1, "name": "Inventory API", "url": "..." },
+  "incident": { "id": 101, "rule_type": "ENDPOINT_FAILURE", "severity": "CRITICAL" }
+}</pre>
+    </div>
+
+    <button class="btn btn-secondary" onclick="triggerTestNotification(this)">
+      📨 Send Test Notification Now
+    </button>
+  </div>
+</div>
+
+<!-- Chronological Webhook Delivery Logs -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">📜 Delivery Attempt Logs</h3>
+    <span style="font-size: 0.8rem; color: var(--text-secondary);">Total Attempts: {{ total }}</span>
+  </div>
+
+  {% if logs %}
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Time (UTC)</th>
+          <th>Trigger Event</th>
+          <th>Destination Target</th>
+          <th>HTTP Code</th>
+          <th>Attempts</th>
+          <th>Delivery Status</th>
+          <th>Diagnostic Log</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in logs %}
+        <tr>
+          <td style="font-size: 0.8rem;">{{ l.created_at[:19].replace('T', ' ') }}</td>
+          <td>
+            {% if l.incident_id %}
+            <a href="/incidents/{{ l.incident_id }}" style="font-weight: 600; color: var(--text-main);">
+              Incident #{{ l.incident_id }}
+            </a>
+            {% else %}
+            <span style="font-weight: 600; color: #0288D1;">🧪 Manual Test</span>
+            {% endif %}
+          </td>
+          <td><code style="font-size: 0.78rem;">{{ l.target_url }}</code></td>
+          <td>
+            {% if l.http_status %}
+            <span style="font-weight: 700; color: {% if l.http_status < 400 %}var(--status-up){% else %}var(--status-down){% endif %};">
+              {{ l.http_status }}
+            </span>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td>{{ l.attempt_number }}</td>
+          <td><span class="status-badge {{ l.status }}">{{ l.status }}</span></td>
+          <td style="font-size: 0.8rem; color: {% if l.error_message %}#991B1B{% else %}var(--status-up){% endif %};">
+            {{ l.error_message or 'Delivered and acknowledged by receiver' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding: 24px;">
+    <h4>No Notification Telemetry</h4>
+    <p style="font-size: 0.85rem; margin-bottom: 0;">No webhook notifications have been sent yet. Configure a destination and click "Send Test Notification" above.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

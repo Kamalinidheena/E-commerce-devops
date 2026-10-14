@@ -1,0 +1,19 @@
+[Unit]
+Description=IncidentPulse Background Monitoring Worker
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/incidentpulse
+Environment="PATH=/var/www/incidentpulse/venv/bin"
+EnvironmentFile=/var/www/incidentpulse/.env
+ExecStart=/var/www/incidentpulse/venv/bin/python run_worker.py
+StandardOutput=append:/var/log/incidentpulse/worker.log
+StandardError=append:/var/log/incidentpulse/worker.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

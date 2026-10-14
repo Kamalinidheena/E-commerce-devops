@@ -1,0 +1,26 @@
+[Unit]
+Description=IncidentPulse Gunicorn Web Application
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/incidentpulse
+Environment="PATH=/var/www/incidentpulse/venv/bin"
+EnvironmentFile=/var/www/incidentpulse/.env
+ExecStart=/var/www/incidentpulse/venv/bin/gunicorn \
+    --workers 4 \
+    --bind 127.0.0.1:5000 \
+    --access-logfile /var/log/incidentpulse/access.log \
+    --error-logfile /var/log/incidentpulse/error.log \
+    wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
